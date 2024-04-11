@@ -1,5 +1,11 @@
 # LYNC-Backend-Developer-Task
 
+Deployed Link : [lync.dharmik.codes](lynk.dharmik.codes)
+
+## Documentation of APIs
+
+[Documentation](https://documenter.getpostman.com/view/26216494/2sA3BhduRL)
+
 ## Contents
 
 [Project Description](#project-description)

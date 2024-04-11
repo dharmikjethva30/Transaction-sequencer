@@ -17,13 +17,21 @@ const TransactionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  gasFees : {
-    type: Number,
+  gasLimit: {
+    type: BigInt,
     required: true,
   },
-  gasLimit : {
-    type: Number,
-    required: true,
+  gasFees : {
+    type: BigInt,
+  },
+  gasPrice : {
+    type: BigInt,
+  },
+  cumulativeGasUsed: {
+    type: BigInt,
+  },
+  gasUsed : {
+    type: BigInt,
   },
   contractAddress : {
     type: String,
@@ -31,10 +39,12 @@ const TransactionSchema = new mongoose.Schema({
   },
   sender : {
     type: String,
-    required: true,
   },
-  amount: {
-    type: Number,
+  transactionHash : {
+    type: String,
+  },
+  value: {
+    type: BigInt,
     required: true,
   },
   status: {

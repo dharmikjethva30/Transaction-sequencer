@@ -22,8 +22,11 @@
     "https": "^1.0.0",
     "ioredis": "^5.3.2",
     "joi": "^17.12.3",
+    "json-bigint": "^1.0.0",
+    "json-with-bigint": "^2.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.0",
+    "mongoose-long": "^0.8.0",
     "morgan": "^1.10.0",
     "prom-client": "^15.1.1",
     "web3": "^4.7.0"

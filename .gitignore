@@ -1,7 +1,5 @@
 node_modules
 keys
-/index.js
-/redis-test.js
 .env
 
 

@@ -2,10 +2,8 @@ const web3 = require('web3');
 const transactionModel = require('../models/transaction.model');
 const txDecoder = require('ethereum-tx-decoder');
 const Redis = require('ioredis')
-const mongoose = require('mongoose');
 const WeB3 = new web3.Web3('https://sepolia.infura.io/v3/87cc502142774c14b5744cb8f1d7db98');
-
-
+var JSONbig = require('json-bigint');
 
 const redis = new Redis(process.env.REDIS_URL)
 
@@ -20,6 +18,7 @@ const Timeout = (prom, time) => {
     });
 }
 
+
 const addTransaction = async (req, res) => {
     try {
     const { rawTransactions, numberOfAttempts, timeout } = req.body;
@@ -28,18 +27,14 @@ const addTransaction = async (req, res) => {
     for (let i = 0; i < rawTransactions.length; i++) {
         const rawTransaction = rawTransactions[i];
         const decoded = txDecoder.decodeTx(rawTransaction);
-        const gasLimit = decoded.gasLimit.toNumber();
         const contractAddress = decoded.to.toString('hex');
-        const to = decoded.to.toString('hex');
         
         const transaction = new transactionModel({
             userId : userId,
             rawTransaction,
-            gasLimit: gasLimit,
-            gasFees: decoded.gasPrice.toNumber(),
+            gasLimit: BigInt(decoded.gasLimit),
             contractAddress,
-            amount: decoded.value.toNumber(),
-            sender: to,
+            value: BigInt(decoded.value),
             attempts: 0,
         });
             await transaction.save();
@@ -95,8 +90,15 @@ const processTransaction = async () => {
                             await transaction.save();
                             continue
                         }
+
                         if (result && result.status) {
                             transaction.attempts = attempts + 1;
+                            transaction.gasPrice = result.effectiveGasPrice
+                            transaction.cumulativeGasUsed = result.cumulativeGasUsed
+                            transaction.gasUsed = result.gasUsed
+                            transaction.gasFees = transaction.gasPrice * transaction.gasUsed
+                            transaction.transactionHash = result.transactionHash.toString('hex')
+                            transaction.sender = result.from.toString('hex');
                             transaction.status = 'SUCCESS';
                             await transaction.save();
                         } else {
@@ -124,148 +126,30 @@ const filterTransactions = async (req, res) => {
         const userId = req.user;
 
         const query = {
-            userId: userId
-        };
-
-        if (sender) query.sender = sender;
-        if (value) query.amount = { $gte: parseFloat(value) };
-        if (contractAddress) query.contractAddress = contractAddress;
-
-        const transactions = await transactionModel.find(query);
-
-        return res.status(200).json({ transactions });
-    } catch (error) {
-        console.log(error);
-        return res.status(400).json({ message: error.message });
-    }
-}
-
-
-const getGasFeesAnalytics = async (req, res) => {
-    try {
-        const userId = req.user;
-        const analytics = await transactionModel.aggregate([
-            { 
-                $match: { 
-                    userId :  new mongoose.Types.ObjectId(userId) 
-                } 
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalGasFees: { $sum: '$gasFees' },
-                    avgGasFees: { $avg: '$gasFees' },
-                    minGasFees: { $min: '$gasFees' },
-                    maxGasFees: { $max: '$gasFees' },
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    totalGasFees: 1,
-                    avgGasFees: { $round: ['$avgGasFees', 2] },
-                    minGasFees: 1,
-                    maxGasFees: 1,
-                }
-            }
-        ]);
-
-        if (analytics.length === 0) {
-            return {
-                totalGasFees: 0,
-                avgGasFees: 0,
-                minGasFees: 0,
-                maxGasFees: 0,
-            };
+            userId: userId,
         }
 
-        return res.status(200).json({ gasFeesData: analytics[0] });
-    } catch (error) {
-        console.log(error);
-        return res.status(400).json({ message: error.message });
-    }
-}
-
-const getGasPricesAnalytics = async (req, res) => {
-    try {
-        const userId = req.user;
-
-        const analytics = await transactionModel.aggregate([
-            { 
-                $match: { 
-                    userId :  new mongoose.Types.ObjectId(userId) } 
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalGasLimit: { $sum: '$gasLimit' },
-                    avgGasLimit: { $avg: '$gasLimit' },
-                    minGasLimit: { $min: '$gasLimit' },
-                    maxGasLimit: { $max: '$gasLimit' },
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    totalGasLimit: 1,
-                    avgGasLimit: { $round: ['$avgGasLimit', 2] },
-                    minGasLimit: 1,
-                    maxGasLimit: 1,
-                }
-            }
-        ]);
-        console.log(analytics);
-
-        if (analytics.length === 0) {
-            return {
-                totalGasLimit: 0,
-                avgGasLimit: 0,
-                minGasLimit: 0,
-                maxGasLimit: 0,
-            };
+        if (sender) query.sender = sender.toString()
+        if (value) query.value = BigInt(value);
+        if (contractAddress) query.contractAddress = contractAddress.toString();
+        if (!sender && !value && !contractAddress){
+            return res.status(400).json({ message: 'Please provide a filter' });
         }
 
-        return res.status(200).json({ gasPricesData: analytics[0] });
+        let transactions = await transactionModel.find(query);
+        transactions = JSONbig.parse(JSONbig.stringify(transactions));
+
+        return res.status(200).json({transactions});
     } catch (error) {
         console.log(error);
         return res.status(400).json({ message: error.message });
     }
 }
-
-const getTransactionValueAnalytics = async (req, res) => {
-    try {
-        const userId = req.user;
-
-        const transactionValueData = await transactionModel.aggregate([
-            {
-                $match: { userId: userId, status: 'SUCCESS' }
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalTransactionValue: { $sum: '$amount' },
-                    avgTransactionValue: { $avg: '$amount' },
-                    maxTransactionValue: { $max: '$amount' },
-                    minTransactionValue: { $min: '$amount' }
-                }
-            }
-        ]);
-
-        return res.status(200).json({ transactionValueData: transactionValueData[0] });
-    } catch (error) {
-        console.log(error);
-        return res.status(400).json({ message: error.message });
-    }
-}
-
 
 
 module.exports = {
     addTransaction,
-    filterTransactions,
-    getGasFeesAnalytics,
-    getGasPricesAnalytics,
-    getTransactionValueAnalytics
+    filterTransactions
 }
     
 

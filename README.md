@@ -1,6 +1,6 @@
 # LYNC-Backend-Developer-Task
 
-Deployed Link : [lync.dharmik.codes](lynk.dharmik.codes)
+Deployed Link : [lync.dharmik.codes](https://lynk.dharmik.codes)
 
 ## Documentation of APIs
 

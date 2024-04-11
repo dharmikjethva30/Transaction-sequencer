@@ -2,8 +2,6 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const fs = require('fs');
-const https = require('https');
 const { xss } = require('express-xss-sanitizer')
 const client = require('prom-client')
 const morgan = require('morgan')
@@ -65,12 +63,17 @@ app.use((req, res)=>
   res.status(404).send({ message: 'Requested endpoint not found' })
 )
 
-const httpsOptions = {
-  key: fs.readFileSync('./keys/server.key'),
-  cert: fs.readFileSync('./keys/server.crt'),
-};
-
-https.createServer(httpsOptions, app).listen(PORT, async() => {
+app.listen(PORT, async() => {
   connect();
   console.log(`Server is running on port ${PORT}`);
 });
+
+// const httpsOptions = {
+//   key: fs.readFileSync('./keys/server.key'),
+//   cert: fs.readFileSync('./keys/server.crt'),
+// };
+
+// https.createServer(httpsOptions, app).listen(PORT, async() => {
+//   connect();
+//   console.log(`Server is running on port ${PORT}`);
+// });

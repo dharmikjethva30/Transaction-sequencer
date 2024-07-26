@@ -1,6 +1,4 @@
-# LYNC-Backend-Developer-Task
-
-Deployed Link : [lync.dharmik.codes](https://lync.dharmik.codes)
+# Transaction-sequencer
 
 ## Documentation of APIs
 
